@@ -6,6 +6,9 @@
 staticfiles/
 .envs/*
 !.envs/.env.example
+!.envs/.production/
+.envs/.production/*
+!.envs/.production/*.example
 
 
 # Byte-compiled / optimized / DLL files

@@ -1,0 +1,82 @@
+# Django Production Environment Variables - EXAMPLE FILE
+# Copy this file to .django and update with your actual values
+# DO NOT commit the actual .django file to git (keep .gitignore updated)
+
+# Django Core Settings
+DJANGO_SETTINGS_MODULE=config.settings.production
+DJANGO_SECRET_KEY=change-me
+DJANGO_ALLOWED_HOSTS=your-domain.com,api-staging.your-domain.com
+DJANGO_DEBUG=False
+
+# CORS and CSRF Configuration
+DJANGO_CORS_ALLOWED_ORIGINS=https://staging-frontend.your-domain.com,http://localhost:3000
+DJANGO_CSRF_TRUSTED_ORIGINS=https://api-staging.your-domain.com
+
+# Database Configuration
+DATABASE_URL=postgres://USER:PASSWORD@postgres:5432/DBNAME
+
+# Cache and Session Configuration
+REDIS_URL=redis://redis:6379/0
+
+# Celery Configuration (Optional, only if using async tasks)
+CELERY_BROKER_URL=amqp://rabbitmq:5672//
+CELERY_RESULT_BACKEND=redis://redis:6379/1
+
+# PayWithAccount (PWA) API Configuration
+PWA_BASE_URL=https://api.dev.onepipe.io
+PWA_TRANSACT_PATH=/v2/transact
+PWA_QUERY_PATH=/transact/query
+PWA_VALIDATE_PATH=/transact/validate
+PWA_API_KEY=change-me
+PWA_CLIENT_SECRET=change-me
+PWA_MOCK_MODE=inspect
+
+# Application Configuration
+KORE_FEE_PERCENT=0.015
+
+# Logging Configuration
+LOG_LEVEL=INFO
+
+# Gunicorn Server Configuration
+WEB_CONCURRENCY=3
+GUNICORN_TIMEOUT=60
+
+# =========================================================================
+# ADDITIONAL OPTIONAL VARIABLES (uncomment and configure as needed)
+# =========================================================================
+
+# Email Configuration (SMTP)
+# EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend
+# EMAIL_HOST=smtp.gmail.com
+# EMAIL_PORT=587
+# EMAIL_USE_TLS=True
+# EMAIL_HOST_USER=your-email@gmail.com
+# EMAIL_HOST_PASSWORD=your-app-password
+# DEFAULT_FROM_EMAIL=noreply@yourdomain.com
+
+# Security Settings
+# SECURE_SSL_REDIRECT=True
+# SESSION_COOKIE_SECURE=True
+# CSRF_COOKIE_SECURE=True
+# SECURE_HSTS_SECONDS=31536000
+# SECURE_HSTS_INCLUDE_SUBDOMAINS=True
+# SECURE_HSTS_PRELOAD=True
+
+# Error Tracking (Sentry)
+# SENTRY_DSN=https://your-sentry-dsn@sentry.io/project-id
+
+# AWS S3 Configuration (Optional, if using S3 for media/static)
+# USE_S3=False
+# AWS_ACCESS_KEY_ID=your-aws-access-key
+# AWS_SECRET_ACCESS_KEY=your-aws-secret-key
+# AWS_STORAGE_BUCKET_NAME=your-bucket-name
+# AWS_S3_REGION_NAME=us-east-1
+
+# Payment Gateway Integration (Stripe, etc.)
+# STRIPE_PUBLIC_KEY=pk_live_your_key
+# STRIPE_SECRET_KEY=sk_live_your_key
+
+# API Keys for Third-party Services
+# TWILIO_ACCOUNT_SID=your-account-sid
+# TWILIO_AUTH_TOKEN=your-auth-token
+# TWILIO_PHONE_NUMBER=+1234567890

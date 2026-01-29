@@ -1,0 +1,216 @@
+# Production Docker Compose Configuration
+# Complete stack with Django, Nginx, PostgreSQL, Redis, and optional Celery
+
+version: '3.8'
+
+services:
+  # Django Application Server
+  django:
+    build:
+      context: .
+      dockerfile: docker/production/Dockerfile
+    image: kore-django:latest
+    container_name: kore-django-prod
+    restart: always
+    command: gunicorn -c config/gunicorn.conf.py config.wsgi:application
+    expose:
+      - "8000"
+    env_file:
+      - .envs/.production/.django
+      - .envs/.production/.postgres
+    environment:
+      # Override or add environment variables as needed
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      # Uncomment if using Celery with RabbitMQ
+      # rabbitmq:
+      #   condition: service_healthy
+    volumes:
+      - static_volume:/app/staticfiles
+      - media_volume:/app/media
+    networks:
+      - kore-prod-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Nginx Reverse Proxy
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: kore-nginx-prod
+    restart: always
+    depends_on:
+      - django
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./docker/production/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - static_volume:/static:ro
+      - media_volume:/media:ro
+    networks:
+      - kore-prod-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/api/v1/health/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: kore-postgres-prod
+    restart: always
+    env_file:
+      - .envs/.production/.postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - kore-prod-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    # Optionally expose for local development/backup
+    # ports:
+    #   - "5432:5432"
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: kore-redis-prod
+    restart: always
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    networks:
+      - kore-prod-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "PING"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    # Optionally expose for local development
+    # ports:
+    #   - "6379:6379"
+
+  # RabbitMQ Message Broker (Only if using Celery)
+  # Uncomment this section if Celery task queue is needed
+  # rabbitmq:
+  #   image: rabbitmq:3-management-alpine
+  #   container_name: kore-rabbitmq-prod
+  #   restart: always
+  #   env_file:
+  #     - .envs/.production/.rabbitmq
+  #   environment:
+  #     RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+  #     RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
+  #   volumes:
+  #     - rabbitmq_data:/var/lib/rabbitmq
+  #   networks:
+  #     - kore-prod-network
+  #   healthcheck:
+  #     test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+  #   expose:
+  #     - "5672"
+  #   # Optionally expose admin panel (staging only, not recommended for production)
+  #   # ports:
+  #   #   - "15672:15672"
+
+  # Celery Worker (Only if using Celery)
+  # Uncomment this section if async task processing is needed
+  # celery_worker:
+  #   build:
+  #     context: .
+  #     dockerfile: docker/production/Dockerfile
+  #   image: kore-django:latest
+  #   container_name: kore-celery-worker-prod
+  #   restart: always
+  #   command: celery -A config worker -l info --concurrency=4
+  #   env_file:
+  #     - .envs/.production/.django
+  #     - .envs/.production/.postgres
+  #   environment:
+  #     DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+  #     REDIS_URL: redis://redis:6379/0
+  #     CELERY_BROKER_URL: amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@rabbitmq:5672//
+  #   depends_on:
+  #     - django
+  #     - postgres
+  #     - redis
+  #     - rabbitmq
+  #   volumes:
+  #     - ./logs:/app/logs
+  #   networks:
+  #     - kore-prod-network
+  #   healthcheck:
+  #     test: ["CMD", "celery", "-A", "config", "inspect", "active"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 3
+  #     start_period: 40s
+
+  # Celery Beat Scheduler (Only if using Celery with scheduled tasks)
+  # Uncomment this section if periodic task scheduling is needed
+  # celery_beat:
+  #   build:
+  #     context: .
+  #     dockerfile: docker/production/Dockerfile
+  #   image: kore-django:latest
+  #   container_name: kore-celery-beat-prod
+  #   restart: always
+  #   command: celery -A config beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+  #   env_file:
+  #     - .envs/.production/.django
+  #     - .envs/.production/.postgres
+  #   environment:
+  #     DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+  #     REDIS_URL: redis://redis:6379/0
+  #     CELERY_BROKER_URL: amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@rabbitmq:5672//
+  #   depends_on:
+  #     - django
+  #     - postgres
+  #     - redis
+  #     - rabbitmq
+  #   volumes:
+  #     - ./logs:/app/logs
+  #   networks:
+  #     - kore-prod-network
+  #   healthcheck:
+  #     test: ["CMD", "celery", "-A", "config", "inspect", "active_queues"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 3
+  #     start_period: 40s
+
+# Named Volumes for Data Persistence
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  static_volume:
+    driver: local
+  media_volume:
+    driver: local
+  # Uncomment if using RabbitMQ
+  # rabbitmq_data:
+  #   driver: local
+
+# Docker Network
+networks:
+  kore-prod-network:
+    driver: bridge

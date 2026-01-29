@@ -1,0 +1,8 @@
+# PostgreSQL Production Environment Variables
+# Copy to .postgres and fill in actual values on deployment
+
+POSTGRES_DB=kore
+POSTGRES_USER=kore
+POSTGRES_PASSWORD=change-me
+POSTGRES_HOST=postgres
+POSTGRES_PORT=5432

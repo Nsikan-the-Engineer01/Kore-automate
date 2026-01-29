@@ -1,0 +1,19 @@
+-r base.txt
+
+# Production server
+gunicorn==21.2.0
+
+# Production database connection pooling
+psycopg2-pool==1.1.0
+
+# Monitoring and performance
+sentry-sdk==1.40.0
+
+# Security headers and CORS (already in base, but keeping for clarity)
+# django-cors-headers is in base
+
+# Environment and secrets management
+python-decouple==3.8
+
+# Logging
+python-json-logger==2.0.7

@@ -1,0 +1,105 @@
+# Production Docker Compose Configuration
+# This is a reference configuration for production deployment
+# Adjust volumes, environment variables, and networking as needed
+
+version: '3.8'
+
+services:
+  nginx:
+    build:
+      context: .
+      dockerfile: ./docker/production/nginx/Dockerfile
+    image: kore-nginx:latest
+    container_name: kore-nginx-prod
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - api
+    volumes:
+      - ./staticfiles:/static:ro
+      - ./media:/media:rw
+    networks:
+      - kore-prod-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/api/v1/health/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  api:
+    build:
+      context: .
+      dockerfile: ./docker/production/django/Dockerfile
+    image: kore-api:latest
+    container_name: kore-api-prod
+    restart: always
+    expose:
+      - "8000"
+    env_file:
+      - ./.envs/.env.production
+    environment:
+      # Gunicorn configuration via environment variables
+      WEB_CONCURRENCY: "3"
+      GUNICORN_TIMEOUT: "60"
+      LOG_LEVEL: "info"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./staticfiles:/app/staticfiles:ro
+      - ./media:/app/media
+    networks:
+      - kore-prod-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: kore-postgres-prod
+    restart: always
+    ports:
+      - "5432:5432"
+    env_file:
+      - ./.envs/.env.production
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - kore-prod-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: kore-redis-prod
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - kore-prod-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  kore-prod-network:
+    driver: bridge

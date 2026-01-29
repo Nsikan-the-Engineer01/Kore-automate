@@ -5,8 +5,15 @@ import sys
 
 
 def main():
-    """Run administrative tasks."""
-    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings.local')
+    """Run administrative tasks.
+
+    Defaults to using the local settings module for development:
+    DJANGO_SETTINGS_MODULE=config.settings.local
+
+    In production, override this via the environment, e.g.:
+    DJANGO_SETTINGS_MODULE=config.settings.production
+    """
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings.local")
     try:
         from django.core.management import execute_from_command_line
     except ImportError as exc:

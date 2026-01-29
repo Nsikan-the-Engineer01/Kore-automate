@@ -1,0 +1,41 @@
+# RabbitMQ Production Environment Variables - EXAMPLE FILE
+# Copy this file to .rabbitmq and update with your actual values
+# Only needed if using Celery for async tasks
+# DO NOT commit the actual .rabbitmq file to git (keep .gitignore updated)
+
+# RabbitMQ Credentials
+RABBITMQ_USER=kore_celery_user
+RABBITMQ_PASSWORD=change-me-to-strong-password
+RABBITMQ_VHOST=/kore
+
+# RabbitMQ Connection Settings
+RABBITMQ_HOST=rabbitmq
+RABBITMQ_PORT=5672
+RABBITMQ_MANAGEMENT_PORT=15672
+
+# RabbitMQ Configuration
+RABBITMQ_DEFAULT_VHOST=/kore
+RABBITMQ_ERLANG_COOKIE=change-me-to-secure-cookie
+
+# RabbitMQ Plugins
+RABBITMQ_PLUGINS=rabbitmq_management rabbitmq_consistent_hash_exchange
+
+# Memory Configuration
+RABBITMQ_MEMORY_HIGH_WATERMARK=0.6
+RABBITMQ_MEMORY_LOW_WATERMARK=0.3
+
+# =========================================================================
+# ADDITIONAL OPTIONAL VARIABLES
+# =========================================================================
+
+# Federation Settings (for distributed setups)
+# RABBITMQ_FEDERATION_ENABLED=false
+# RABBITMQ_UPSTREAM_NODES=rabbit@upstream-host
+
+# Cluster Settings (for high availability)
+# RABBITMQ_CLUSTER_PARTITION_HANDLING=autoheal
+# RABBITMQ_CLUSTER_NODES=rabbit@rabbitmq-1,rabbit@rabbitmq-2
+
+# Performance Settings
+# RABBITMQ_CHANNEL_MAX=2048
+# RABBITMQ_HEARTBEAT=60
