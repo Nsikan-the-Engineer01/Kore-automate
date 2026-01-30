@@ -29,7 +29,7 @@ services:
   django:
     build:
       context: .
-      dockerfile: docker/production/Dockerfile
+      dockerfile: docker/production/django/Dockerfile
     image: kore-django:latest
     container_name: kore-django-prod
     restart: always
