@@ -56,7 +56,11 @@ services:
     networks:
       - kore-prod-network
     healthcheck:
+<<<<<<< HEAD
       test: ["CMD-SHELL", "pg_isready -U postgres"]
+=======
+      test: ["CMD-SHELL", "pg_isready -U kore -d kore"]
+>>>>>>> d60dcb42eac735c97bf5e66735c22b16883b887d
       interval: 10s
       timeout: 5s
       retries: 5
