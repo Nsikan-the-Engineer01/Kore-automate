@@ -1,14 +1,11 @@
 # Production Docker Compose Configuration
-# This is a reference configuration for production deployment
-# Adjust volumes, environment variables, and networking as needed
-
-version: '3.8'
+# Complete stack with Django, Nginx, PostgreSQL, and Redis
 
 services:
   nginx:
     build:
       context: .
-      dockerfile: ./docker/production/nginx/Dockerfile
+      dockerfile: docker/production/nginx/Dockerfile
     image: kore-nginx:latest
     container_name: kore-nginx-prod
     restart: always
@@ -16,10 +13,10 @@ services:
       - "80:80"
       - "443:443"
     depends_on:
-      - api
+      - django
     volumes:
-      - ./staticfiles:/static:ro
-      - ./media:/media:rw
+      - static_volume:/static:ro
+      - media_volume:/media:rw
     networks:
       - kore-prod-network
     healthcheck:
@@ -29,30 +26,29 @@ services:
       retries: 3
       start_period: 10s
 
-  api:
+  django:
     build:
       context: .
-      dockerfile: ./docker/production/django/Dockerfile
-    image: kore-api:latest
-    container_name: kore-api-prod
+      dockerfile: docker/production/Dockerfile
+    image: kore-django:latest
+    container_name: kore-django-prod
     restart: always
     expose:
       - "8000"
     env_file:
-      - ./.envs/.env.production
+      - .envs/.production/.django
+      - .envs/.production/.postgres
     environment:
-      # Gunicorn configuration via environment variables
-      WEB_CONCURRENCY: "3"
-      GUNICORN_TIMEOUT: "60"
-      LOG_LEVEL: "info"
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      REDIS_URL: redis://redis:6379/0
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
     volumes:
-      - ./staticfiles:/app/staticfiles:ro
-      - ./media:/app/media
+      - static_volume:/app/staticfiles
+      - media_volume:/app/media
     networks:
       - kore-prod-network
     healthcheck:
@@ -63,19 +59,19 @@ services:
       start_period: 40s
 
   postgres:
-    image: postgres:16-alpine
+    image: postgres:15-alpine
     container_name: kore-postgres-prod
     restart: always
-    ports:
-      - "5432:5432"
+    expose:
+      - "5432"
     env_file:
-      - ./.envs/.env.production
+      - .envs/.production/.postgres
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - kore-prod-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -84,8 +80,8 @@ services:
     image: redis:7-alpine
     container_name: kore-redis-prod
     restart: always
-    ports:
-      - "6379:6379"
+    expose:
+      - "6379"
     volumes:
       - redis_data:/data
     networks:
@@ -99,6 +95,8 @@ services:
 volumes:
   postgres_data:
   redis_data:
+  static_volume:
+  media_volume:
 
 networks:
   kore-prod-network:
