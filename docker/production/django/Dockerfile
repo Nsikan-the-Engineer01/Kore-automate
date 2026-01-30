@@ -54,6 +54,9 @@ COPY --chown=django:django . /app
 # Collect static files at runtime
 RUN python manage.py collectstatic --noinput --clear || true
 
+# Ensure ownership is correct for all app files (including logs)
+RUN chown -R django:django /app || true
+
 # Switch to non-root user
 USER django
 
