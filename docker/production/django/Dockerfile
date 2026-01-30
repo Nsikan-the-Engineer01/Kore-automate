@@ -39,7 +39,7 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
 # Create non-root user
 RUN groupadd -r django && \
     useradd -r -g django django && \
-    mkdir -p /app/staticfiles /app/media && \
+    mkdir -p /app/staticfiles /app/media /app/logs && \
     chown -R django:django /app
 
 # Copy wheels from builder
